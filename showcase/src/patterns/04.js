@@ -1,17 +1,22 @@
 import React, {
   useState,
   useCallback,
-  useLayoutEffect,
-  createContext,
-  useContext,
-  useMemo,
   useEffect,
+  useLayoutEffect,
+  useContext,
   useRef,
+  useMemo,
+  createContext,
 } from "react";
-import mojs from "mo-js";
 
-import styles from "./index.css";
+import mojs from "mo-js";
 import { generateRandomNumber } from "../utils/generateRandomNumber";
+import styles from "./index.css";
+
+/** ====================================
+     *          🔰Hook
+          Hook for Animation
+    ==================================== **/
 
 const useClapAnimation = ({
   duration: tlDuration,
@@ -113,8 +118,9 @@ const useClapAnimation = ({
 
   return animationTimeline;
 };
-
-const MAXIMUM_USER_CLAP = 50;
+/** ====================================
+     *      🔰 MediumClap
+    ==================================== **/
 const initialState = {
   count: 0,
   countTotal: generateRandomNumber(500, 10000),
@@ -125,9 +131,11 @@ const MediumClapContext = createContext();
 const { Provider } = MediumClapContext;
 
 const MediumClap = ({ children, onClap }) => {
+  const MAXIMUM_USER_CLAP = 50;
   const [clapState, setClapState] = useState(initialState);
-  const [{ clapRef, clapCountRef, clapTotalRef }, setRefState] = useState({});
   const { count, countTotal, isClicked } = clapState;
+
+  const [{ clapRef, clapCountRef, clapTotalRef }, setRefState] = useState({});
 
   const setRef = useCallback((node) => {
     if (node !== null) {
@@ -155,17 +163,22 @@ const MediumClap = ({ children, onClap }) => {
     });
   };
 
-  const memoizedValue = useMemo(() => ({ ...clapState, setRef }), [
-    clapState,
-    setRef,
-  ]);
-
   const componentJustMounted = useRef(true);
 
   useEffect(() => {
-    if (!componentJustMounted.current) onClap && onClap(count);
-    else componentJustMounted.current = false;
-  }, [onClap, count]);
+    if (!componentJustMounted.current) {
+      onClap(clapState);
+    }
+    componentJustMounted.current = false;
+  }, [count, onClap]);
+
+  const memoizedValue = useMemo(
+    () => ({
+      ...clapState,
+      setRef,
+    }),
+    [clapState, setRef]
+  );
 
   return (
     <Provider value={memoizedValue}>
@@ -181,9 +194,13 @@ const MediumClap = ({ children, onClap }) => {
   );
 };
 
+/** ====================================
+     *      🔰SubComponents
+    Smaller Component used by <MediumClap />
+    ==================================== **/
+
 const ClapIcon = () => {
   const { isClicked } = useContext(MediumClapContext);
-
   return (
     <span>
       <svg
@@ -198,20 +215,16 @@ const ClapIcon = () => {
     </span>
   );
 };
-
 const ClapCount = () => {
   const { count, setRef } = useContext(MediumClapContext);
-
   return (
     <span ref={setRef} data-refkey="clapCountRef" className={styles.count}>
       +{count}
     </span>
   );
 };
-
 const CountTotal = () => {
   const { countTotal, setRef } = useContext(MediumClapContext);
-
   return (
     <span ref={setRef} data-refkey="clapTotalRef" className={styles.total}>
       {countTotal}
@@ -221,26 +234,35 @@ const CountTotal = () => {
 
 MediumClap.Icon = ClapIcon;
 MediumClap.Count = ClapCount;
-MediumClap.CountTotal = CountTotal;
+MediumClap.Total = CountTotal;
+
+/** ====================================
+        *        🔰USAGE
+        Below's how a potential user
+        may consume the component API
+    ==================================== **/
+const Info = ({ info }) => {
+  return <div className={styles.info}>{info}</div>;
+};
 
 const Usage = () => {
-  const [count, setCount] = useState(0);
+  const [total, setTotal] = useState(0);
 
-  const handleClapCount = (clapCount) => setCount(clapCount);
+  const onClap = ({ countTotal }) => {
+    setTotal(countTotal);
+  };
 
   return (
-    <>
-      <MediumClap onClap={handleClapCount}>
+    <div style={{ width: "100%" }}>
+      <MediumClap onClap={onClap}>
         <MediumClap.Icon />
+        <MediumClap.Total />
         <MediumClap.Count />
-        <MediumClap.CountTotal />
       </MediumClap>
-      {!!count && (
-        <div style={{ position: "absolute", top: 15 }}>
-          You clicked {count}!
-        </div>
+      {!!total && (
+        <Info info={`Your article has been clapped ${total} times`} />
       )}
-    </>
+    </div>
   );
 };
 
